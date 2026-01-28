@@ -1,0 +1,25 @@
+{
+  "name": "figma-code-generator",
+  "version": "1.0.0",
+  "description": "Convert Figma designs to web (HTML/CSS) and iOS (SwiftUI) code",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "test": "jest"
+  },
+  "keywords": ["figma", "code-generator", "swiftui", "css", "html"],
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.1",
+    "mustache": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/mustache": "^4.2.5",
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.2"
+  }
+}
