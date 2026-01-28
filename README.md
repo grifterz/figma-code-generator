@@ -2,6 +2,14 @@
 
 Convert Figma designs to production-ready web (HTML/CSS) and iOS (SwiftUI) code.
 
+## Two Ways to Use
+
+### 1. Web UI (Recommended for quick use)
+A Next.js web app where you paste your Figma URL and see the generated code instantly.
+
+### 2. CLI (For automation & integration)
+A Node.js CLI for generating code from the command line or scripts.
+
 ## Features
 
 - **Figma API Integration** - Fetch designs directly from Figma
@@ -30,7 +38,17 @@ FIGMA_ACCESS_TOKEN=your_figma_token_here
 
 Get your token from [Figma Settings](https://www.figma.com/developers/api#access-tokens).
 
-### 3. Run
+### 3. Run (Web UI)
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Then open http://localhost:3000 and paste your Figma URL.
+
+### 4. Run (CLI)
 
 ```bash
 # Using a Figma URL
@@ -50,6 +68,27 @@ npm start -- --url "https://www.figma.com/file/ABC...?node-id=1:2" --output both
 ```
 
 ## Project Structure
+
+```
+figma-code-generator/
+├── src/                        # Core generator (Node.js CLI)
+│   ├── api/
+│   ├── parser/
+│   ├── transformers/
+│   ├── generators/
+│   └── index.ts
+├── web/                        # Web UI (Next.js)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx        # Main UI
+│   │   │   └── api/
+│   │   │       └── generate/   # API endpoint
+│   │   └── components/
+│   ├── package.json
+│   └── tsconfig.json
+├── package.json
+└── README.md
+```
 
 ```
 figma-code-generator/
