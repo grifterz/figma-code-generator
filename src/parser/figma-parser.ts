@@ -1,5 +1,5 @@
-import { FigmaClient } from './figma-client';
-import { FigmaResponse, Node as FigmaNode, GetFileResponse } from './figma-api-types';
+import { FigmaClient } from '../api/figma-client';
+import { FigmaResponse, Node as FigmaNode, GetFileResponse, Style } from '../api/figma-api-types';
 import { 
   ParsedDocument, 
   ParsedPage, 
@@ -13,8 +13,9 @@ import {
   BaseNode,
   DesignTokens,
   Color,
+  DesignStyle,
 } from '../types/figma-node';
-import { NodeTransformer } from './node-transformer';
+import { NodeTransformer } from '../transformers/node-transformer';
 
 export class FigmaParser {
   private client: FigmaClient;
@@ -89,17 +90,18 @@ export class FigmaParser {
 
     // Process style definitions
     for (const [styleId, style] of Object.entries(response.styles || {})) {
-      if (style.styleType === 'FILL') {
+      const figmaStyle = style as { key: string; name: string; styleType: string };
+      if (figmaStyle.styleType === 'FILL') {
         // Colors would be extracted from nodes using this style
-        tokens.colors[style.name] = { r: 0, g: 0, b: 0, a: 1 }; // Placeholder
-      } else if (style.styleType === 'TEXT') {
-        tokens.textStyles[style.name] = {
+        tokens.colors[figmaStyle.name] = { r: 0, g: 0, b: 0, a: 1 }; // Placeholder
+      } else if (figmaStyle.styleType === 'TEXT') {
+        tokens.textStyles[figmaStyle.name] = {
           fontFamily: 'Arial',
           fontSize: 14,
           fontWeight: 400,
         };
-      } else if (style.styleType === 'EFFECT') {
-        tokens.effects[style.name] = { type: 'DROP_SHADOW' };
+      } else if (figmaStyle.styleType === 'EFFECT') {
+        tokens.effects[figmaStyle.name] = { type: 'DROP_SHADOW' };
       }
     }
 
@@ -145,20 +147,23 @@ export class FigmaParser {
     for (const [id, component] of Object.entries(response.components || {})) {
       // Components are stored by ID, we'd need to find them in the document
       // This is a simplified version
+      const figmaComponent = component as { key: string; name: string; description: string };
       components[id] = {
         id,
-        name: component.name,
+        name: figmaComponent.name,
         type: 'COMPONENT',
         children: [],
       };
     }
 
     // Parse styles
-    const styles: Record<string, { name: string; type: string }> = {};
+    const styles: Record<string, DesignStyle> = {};
     for (const [id, style] of Object.entries(response.styles || {})) {
+      const figmaStyle = style as Style;
       styles[id] = {
-        name: style.name,
-        type: style.styleType,
+        key: figmaStyle.key,
+        name: figmaStyle.name,
+        type: figmaStyle.styleType,
       };
     }
 
