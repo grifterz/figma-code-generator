@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { FigmaParser, createParser } from './parser/figma-parser';
-import { WebGenerator } from './generators/web/web-generator';
+import { WebGenerator } from './generators/web';
 import { SwiftGenerator } from './generators/swift/swift-generator';
 import { extractFileKey, extractNodeId } from './api/figma-client';
 import { BaseNode } from './types/figma-node';

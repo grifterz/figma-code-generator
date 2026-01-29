@@ -1,173 +1,191 @@
-# Figma Code Generator
+# Figma to Web Generator
 
-Convert Figma designs to production-ready web (HTML/CSS) and iOS (SwiftUI) code.
+**High-fidelity pixel-perfect rendering of Figma designs to HTML/CSS.**
 
-## Two Ways to Use
+## 🎯 Goal
 
-### 1. Web UI (Recommended for quick use)
-A Next.js web app where you paste your Figma URL and see the generated code instantly.
+Replicate Figma designs exactly - extracting all data and piecing it together correctly in HTML/CSS.
 
-### 2. CLI (For automation & integration)
-A Node.js CLI for generating code from the command line or scripts.
+## Architecture
+
+```
+Figma Design
+     ↓
+Figma API (REST)
+     ↓
+NodeTransformer → Internal AST
+     ↓
+HighFidelityRenderer → HTML + CSS
+     ↓
+Pixel-Perfect Output
+```
 
 ## Features
 
-- **Figma API Integration** - Fetch designs directly from Figma
-- **Node Parsing** - Parse frames, text, shapes, components, and instances
-- **Layout Support** - Auto-layout (horizontal, vertical, grid) to CSS Flexbox/Grid and SwiftUI HStack/VStack
-- **Style Mapping** - Colors, typography, borders, shadows, and effects
-- **Dual Output** - Generate both web and iOS code from the same source
-- **TypeScript** - Full type safety throughout
+### Layout
+- ✅ Auto-layout (flexbox)
+- ✅ Absolute positioning
+- ✅ Constraints
+- ✅ Grid support
+
+### Shapes
+- ✅ Rectangle (with corner radius)
+- ✅ Ellipse
+- ✅ Vector (fallback)
+- ✅ Line, Star, Polygon
+
+### Styling
+- ✅ Solid & gradient fills
+- ✅ Image backgrounds
+- ✅ Stroke/border
+- ✅ Corner radius
+- ✅ Opacity & blend modes
+
+### Effects
+- ✅ Drop shadow
+- ✅ Inner shadow
+- ✅ Layer blur
+- ✅ Background blur
+
+### Text
+- ✅ Font family, size, weight
+- ✅ Text alignment
+- ✅ Line height & letter spacing
+- ✅ Decoration (underline, strikethrough)
+- ✅ Auto-resize
+
+### Hierarchy
+- ✅ Frames, Groups
+- ✅ Components & Instances
+- ✅ Nested children
 
 ## Quick Start
 
-### 1. Install
-
-```bash
-cd figma-code-generator
-npm install
+### 1. Get Figma Access Token
+```
+Figma → Settings → Account → Personal access tokens → Create new
 ```
 
-### 2. Configure Figma Token
-
-Create a `.env` file:
-
+### 2. Set Environment Variable
 ```bash
-FIGMA_ACCESS_TOKEN=your_figma_token_here
+# Create .env file
+FIGMA_ACCESS_TOKEN=your_token_here
 ```
 
-Get your token from [Figma Settings](https://www.figma.com/developers/api#access-tokens).
+### 3. Run the Generator
 
-### 3. Run (Web UI)
+**Command Line:**
+```bash
+npx figma-code-generator --url "https://www.figma.com/file/ABC123...?node-id=123:456"
+```
 
+**Programmatic:**
+```typescript
+import { FigmaParser, WebGenerator } from 'figma-code-generator';
+
+const parser = new FigmaParser(process.env.FIGMA_ACCESS_TOKEN);
+const generator = new WebGenerator();
+
+// Parse and generate
+const node = await parser.parseNode('file-key', 'node-id');
+const result = generator.generate(node, { filename: 'my-design' });
+
+console.log(result.html);
+console.log(result.css);
+```
+
+### 4. Web Interface
 ```bash
 cd web
-npm install
 npm run dev
+# Open http://localhost:3000
 ```
 
-Then open http://localhost:3000 and paste your Figma URL.
+## Output Example
 
-### 4. Run (CLI)
+**Input:** Figma frame with text, images, and auto-layout
 
-```bash
-# Using a Figma URL
-npm start -- --url "https://www.figma.com/file/FILE_KEY/Design-Name"
-
-# Using just the file key
-npm start -- --file FILE_KEY
-
-# Generate only web code
-npm start -- --url "..." --output web
-
-# Generate only SwiftUI code
-npm start -- --url "..." --output swift
-
-# Generate specific node
-npm start -- --url "https://www.figma.com/file/ABC...?node-id=1:2" --output both
+**Output:**
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Design</title>
+  <style>
+    .figma-root-0 {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      gap: 16px;
+    }
+    .figma-child-1 {
+      width: 100%;
+      height: 48px;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <div class="figma-root-0">
+    <div class="figma-child-1">...</div>
+  </div>
+</body>
+</html>
 ```
+
+## Rate Limiting
+
+Figma API rate limits (per seat type):
+
+| Tier | Starter | Professional | Enterprise |
+|------|---------|--------------|------------|
+| Tier 1 | 6/month | 15/min | 20/min |
+| Tier 2 | 5/min | 50/min | 100/min |
+| Tier 3 | 10/min | 100/min | 150/min |
+
+**Best Practices:**
+1. Batch requests when possible
+2. Cache responses locally
+3. Implement retry with backoff
+4. Upgrade to Full/Dev seat for higher limits
 
 ## Project Structure
 
 ```
 figma-code-generator/
-├── src/                        # Core generator (Node.js CLI)
-│   ├── api/
-│   ├── parser/
-│   ├── transformers/
-│   ├── generators/
-│   └── index.ts
-├── web/                        # Web UI (Next.js)
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx        # Main UI
-│   │   │   └── api/
-│   │   │       └── generate/   # API endpoint
-│   │   └── components/
-│   ├── package.json
-│   └── tsconfig.json
-├── package.json
-└── README.md
-```
-
-```
-figma-code-generator/
 ├── src/
-│   ├── api/                    # Figma API client & types
-│   │   ├── figma-client.ts     # REST API client
-│   │   └── figma-api-types.ts  # Figma API response types
-│   ├── parser/                 # File parsing
-│   │   └── figma-parser.ts     # Main parser
-│   ├── transformers/           # Node transformation
-│   │   └── node-transformer.ts # Figma node → internal AST
-│   ├── generators/             # Code generators
-│   │   ├── web/                # HTML/CSS generator
-│   │   └── swift/              # SwiftUI generator
-│   ├── types/                  # TypeScript types
-│   │   └── figma-node.ts       # Internal AST types
-│   └── index.ts                # Main entry point
-├── templates/                  # Code templates
-├── package.json
-├── tsconfig.json
-└── .env.example
+│   ├── api/              # Figma API client
+│   ├── parser/           # Parse Figma API → AST
+│   ├── renderer/         # High-fidelity CSS rendering
+│   ├── generators/       # Output generators
+│   │   ├── web/          # HTML/CSS output
+│   │   └── swift/        # SwiftUI output
+│   ├── transformers/     # Node transformation
+│   └── types/            # TypeScript types
+├── web/                  # Web interface
+└── templates/            # Output templates
 ```
-
-## API Usage
-
-```typescript
-import { FigmaCodeGenerator } from './src/index';
-
-const generator = new FigmaCodeGenerator('YOUR_FIGMA_TOKEN');
-
-// From URL
-const results = await generator.generateFromUrl(
-  'https://www.figma.com/file/ABC123/Design',
-  { output: 'both' }
-);
-
-// From file key
-const results = await generator.generateFromKey('ABC123', undefined, {
-  output: 'both'
-});
-
-// Results
-results.web?.html  // Complete HTML file
-results.web?.css   // CSS styles
-results.swift      // SwiftUI code
-```
-
-## Supported Figma Features
-
-### Node Types
-- FRAME, GROUP, COMPONENT, INSTANCE
-- TEXT, RECTANGLE, VECTOR, ELLIPSE
-- BOOLEAN_OPERATION, STAR, LINE
-
-### Layout Properties
-- Auto-layout modes (HORIZONTAL, VERTICAL, GRID)
-- Padding and item spacing
-- Primary/counter axis alignment
-- Wrap behavior
-
-### Visual Styles
-- Fills (solid colors, gradients, images)
-- Strokes (borders)
-- Corner radius
-- Effects (shadows, blur)
-
-### Typography
-- Font family, size, weight
-- Letter spacing, line height
-- Text alignment
 
 ## Roadmap
 
-- [ ] Image export for complex vectors
-- [ ] Component instance resolution
-- [ ] Design token extraction
-- [ ] React/Vue component output
+- [ ] SVG export for vectors
+- [ ] Design token extraction (colors, typography)
+- [ ] Component mapping
+- [ ] Image sprite generation
+- [ ] React component output
+- [ ] Tailwind CSS output
 - [ ] Design system support
-- [ ] Plugin integration
+
+## Based On
+
+Working implementation patterns from:
+- `fisma-render-app` (original)
+- Builder.io Mitosis
+- FigmaToCode (open source)
 
 ## License
 
