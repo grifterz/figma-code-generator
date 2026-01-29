@@ -120,6 +120,8 @@ export class NodeTransformer {
   }
 
   private transformGroup(node: FigmaGroupNode): BaseNode {
+    // Cast to any because Figma API GroupNode doesn't have fills/strokes but internal type does
+    const nodeAny = node as any;
     return {
       id: node.id,
       name: node.name,
@@ -136,9 +138,9 @@ export class NodeTransformer {
         width: node.absoluteBoundingBox.width,
         height: node.absoluteBoundingBox.height,
       } : undefined,
-      fills: node.fills ? this.transformFills(node.fills) : undefined,
-      strokes: node.strokes ? this.transformStrokes(node.strokes) : undefined,
-      effects: node.effects ? this.transformEffects(node.effects) : undefined,
+      fills: nodeAny.fills ? this.transformFills(nodeAny.fills) : undefined,
+      strokes: nodeAny.strokes ? this.transformStrokes(nodeAny.strokes) : undefined,
+      effects: nodeAny.effects ? this.transformEffects(nodeAny.effects) : undefined,
       children: node.children?.map(child => this.transform(child)),
     };
   }
