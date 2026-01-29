@@ -31,32 +31,31 @@ export class NodeTransformer {
    * Transform a Figma API node to our internal AST format
    */
   transform(node: FigmaNode): BaseNode {
-    switch (node.type) {
-      case 'DOCUMENT':
-        return this.transformDocument(node);
-      case 'CANVAS':
-        return this.transformCanvas(node);
-      case 'FRAME':
-        return this.transformFrame(node);
-      case 'GROUP':
-        return this.transformGroup(node);
-      case 'TEXT':
-        return this.transformText(node);
-      case 'RECTANGLE':
-        return this.transformRectangle(node);
-      case 'VECTOR':
-        return this.transformVector(node);
-      case 'ELLIPSE':
-        return this.transformEllipse(node);
-      case 'COMPONENT':
-        return this.transformComponent(node);
-      case 'COMPONENT_SET':
-        return this.transformComponent(node);
-      case 'INSTANCE':
-        return this.transformInstance(node);
-      default:
-        return this.transformBaseNode(node);
-    }
+    // Type guard functions
+    const isDocument = (n: FigmaNode): n is DocumentNode => n.type === 'DOCUMENT';
+    const isCanvas = (n: FigmaNode): n is CanvasNode => n.type === 'CANVAS';
+    const isFrame = (n: FigmaNode): n is FigmaFrameNode => n.type === 'FRAME';
+    const isGroup = (n: FigmaNode): n is FigmaGroupNode => n.type === 'GROUP';
+    const isText = (n: FigmaNode): n is FigmaTextNode => n.type === 'TEXT';
+    const isRectangle = (n: FigmaNode): n is FigmaRectangleNode => n.type === 'RECTANGLE';
+    const isVector = (n: FigmaNode): n is FigmaVectorNode => n.type === 'VECTOR';
+    const isEllipse = (n: FigmaNode): n is FigmaEllipseNode => n.type === 'ELLIPSE';
+    const isComponent = (n: FigmaNode): n is FigmaComponentNode => n.type === 'COMPONENT';
+    const isComponentSet = (n: FigmaNode): n is FigmaComponentSetNode => n.type === 'COMPONENT_SET';
+    const isInstance = (n: FigmaNode): n is FigmaInstanceNode => n.type === 'INSTANCE';
+
+    if (isDocument(node)) return this.transformDocument(node);
+    if (isCanvas(node)) return this.transformCanvas(node);
+    if (isFrame(node)) return this.transformFrame(node);
+    if (isGroup(node)) return this.transformGroup(node);
+    if (isText(node)) return this.transformText(node);
+    if (isRectangle(node)) return this.transformRectangle(node);
+    if (isVector(node)) return this.transformVector(node);
+    if (isEllipse(node)) return this.transformEllipse(node);
+    if (isComponent(node)) return this.transformComponent(node);
+    if (isComponentSet(node)) return this.transformComponent(node);
+    if (isInstance(node)) return this.transformInstance(node);
+    return this.transformBaseNode(node);
   }
 
   private transformDocument(node: DocumentNode): BaseNode {
@@ -98,10 +97,10 @@ export class NodeTransformer {
         width: node.absoluteBoundingBox.width,
         height: node.absoluteBoundingBox.height,
       } : undefined,
-      layoutMode: node.layoutMode,
-      layoutWrap: node.layoutWrap,
-      primaryAxisAlignItems: node.primaryAxisAlignItems,
-      counterAxisAlignItems: node.counterAxisAlignItems,
+      layoutMode: node.layoutMode as FrameNode['layoutMode'],
+      layoutWrap: node.layoutWrap as FrameNode['layoutWrap'],
+      primaryAxisAlignItems: node.primaryAxisAlignItems as FrameNode['primaryAxisAlignItems'],
+      counterAxisAlignItems: node.counterAxisAlignItems as FrameNode['counterAxisAlignItems'],
       paddingLeft: node.paddingLeft,
       paddingRight: node.paddingRight,
       paddingTop: node.paddingTop,
@@ -137,9 +136,9 @@ export class NodeTransformer {
         width: node.absoluteBoundingBox.width,
         height: node.absoluteBoundingBox.height,
       } : undefined,
-      fills: this.transformFills(node.fills),
-      strokes: this.transformStrokes(node.strokes),
-      effects: this.transformEffects(node.effects),
+      fills: node.fills ? this.transformFills(node.fills) : undefined,
+      strokes: node.strokes ? this.transformStrokes(node.strokes) : undefined,
+      effects: node.effects ? this.transformEffects(node.effects) : undefined,
       children: node.children?.map(child => this.transform(child)),
     };
   }
@@ -230,8 +229,8 @@ export class NodeTransformer {
       strokes: this.transformStrokes(node.strokes),
       strokeWeight: node.strokeWeight,
       strokeAlign: node.strokeAlign,
-      strokeCap: node.strokeCap,
-      strokeJoin: node.strokeJoin,
+      strokeCap: node.strokeCap as VectorNode['strokeCap'],
+      strokeJoin: node.strokeJoin as VectorNode['strokeJoin'],
       effects: this.transformEffects(node.effects),
     };
   }
