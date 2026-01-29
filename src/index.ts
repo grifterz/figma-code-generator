@@ -203,9 +203,10 @@ async function main() {
       console.log('SwiftUI file generated successfully!');
       console.log(`Length: ${results.swift.length} characters`);
       
+      const fs = await import('fs');
+      const path = await import('path');
+      
       if (options.outputDir) {
-        const fs = await import('fs');
-        const path = await import('path');
         const swiftPath = path.join(options.outputDir, 'FigmaDesignView.swift');
         fs.writeFileSync(swiftPath, results.swift);
         console.log(`\nFile saved to: ${swiftPath}`);
@@ -252,4 +253,4 @@ if (require.main === module) {
   main();
 }
 
-export { FigmaCodeGenerator, main };
+export { FigmaCodeGenerator, main as cliMain };
