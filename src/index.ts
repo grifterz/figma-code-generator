@@ -16,7 +16,7 @@ export interface CLIOptions {
   outputDir?: string;
 }
 
-export class FigmaCodeGenerator {
+class FigmaCodeGenerator {
   private parser: FigmaParser;
 
   constructor(accessToken: string) {
@@ -35,7 +35,7 @@ export class FigmaCodeGenerator {
       throw new Error('Invalid Figma URL. Could not extract file key.');
     }
 
-    const nodeId = options.nodeId || extractNodeId(url);
+    const nodeId = options.nodeId || extractNodeId(url) || undefined;
 
     return this.generateFromKey(fileKey, nodeId, options);
   }
