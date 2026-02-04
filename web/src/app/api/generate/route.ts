@@ -1,79 +1,53 @@
 /**
- * Figma API Client with Local Caching
+ * Figma API Client with Caching
  * 
- * Purpose: Fetch Figma designs while caching responses locally
- * to avoid API rate limits during development.
+ * Purpose: Fetch Figma designs with caching to avoid API rate limits.
  * 
- * Workflow:
- * 1. Check if local cache exists for the file key
- * 2. If cached, return cached data (no API call)
- * 3. If not cached, fetch from Figma API
- * 4. Save response to local cache file
+ * Caching Strategy:
+ * - In-memory cache for duration of serverless function
+ * - For persistent caching, would need Vercel KV/Blob
+ * - This implementation caches during development sessions
  * 
  * Rate Limit Strategy:
- * - Cache all responses during development
- * - Only 1 API call per new design
- * - Works offline after initial fetch
+ * - Cache results in memory during session
+ * - Works within single deployment instance
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-// Cache directory for storing Figma API responses
-const CACHE_DIR = path.join(process.cwd(), 'figma-cache');
+// ============================================================================
+// IN-MEMORY CACHE (per-serverless-instance)
+// Note: For persistent caching across instances, use Vercel KV or Blob
+// ============================================================================
 
-// Ensure cache directory exists
-if (!fs.existsSync(CACHE_DIR)) {
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+  maxAge: number; // milliseconds
 }
 
-/**
- * Generate cache filename from file key
- * Format: figma-{fileKey}.json
- */
-function getCachePath(fileKey: string): string {
-  return path.join(CACHE_DIR, `figma-${fileKey}.json`);
-}
+// In-memory cache - resets on cold starts
+const cache = new Map<string, CacheEntry>();
+const CACHE_MAX_AGE = 60 * 60 * 1000; // 1 hour
 
-/**
- * Check if cache file exists and is valid (less than 24 hours old)
- */
-function isCacheValid(fileKey: string): boolean {
-  const cachePath = getCachePath(fileKey);
+function getFromCache(fileKey: string): any | null {
+  const entry = cache.get(fileKey);
+  if (!entry) return null;
   
-  if (!fs.existsSync(cachePath)) {
-    return false;
+  if (Date.now() - entry.timestamp > entry.maxAge) {
+    cache.delete(fileKey);
+    return null;
   }
   
-  // Check file age
-  const stats = fs.statSync(cachePath);
-  const age = Date.now() - stats.mtimeMs;
-  const MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
-  
-  return age < MAX_AGE;
+  return entry.data;
 }
 
-/**
- * Read cached Figma data from local file
- */
-function readCache(fileKey: string): any | null {
-  const cachePath = getCachePath(fileKey);
-  
-  if (fs.existsSync(cachePath)) {
-    const content = fs.readFileSync(cachePath, 'utf-8');
-    return JSON.parse(content);
-  }
-  
-  return null;
-}
-
-/**
- * Save Figma API response to local cache file
- */
-function saveCache(fileKey: string, data: any): void {
-  const cachePath = getCachePath(fileKey);
-  fs.writeFileSync(cachePath, JSON.stringify(data, null, 2));
+function saveToCache(fileKey: string, data: any): void {
+  cache.set(fileKey, {
+    data,
+    timestamp: Date.now(),
+    maxAge: CACHE_MAX_AGE,
+  });
 }
 
 // ============================================================================
@@ -321,9 +295,10 @@ export async function POST(request: NextRequest) {
     let figmaData: FigmaFile | null = null;
     let fromCache = false;
 
-    if (isCacheValid(fileKey)) {
-      console.log(`[CACHE] Loading ${fileKey} from cache`);
-      figmaData = readCache(fileKey);
+    const cached = getFromCache(fileKey);
+    if (cached) {
+      console.log(`[CACHE] Loading ${fileKey} from memory cache`);
+      figmaData = cached;
       fromCache = true;
     }
 
@@ -356,8 +331,8 @@ export async function POST(request: NextRequest) {
       figmaData = await response.json();
       
       // Save to cache
-      saveCache(fileKey, figmaData);
-      console.log(`[CACHE] Saved ${fileKey} to cache`);
+      saveToCache(fileKey, figmaData);
+      console.log(`[CACHE] Saved ${fileKey} to memory cache`);
     }
 
     // Get the target node (first canvas, then specified node or first frame)
