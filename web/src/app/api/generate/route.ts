@@ -226,8 +226,10 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Figma API Error:', response.status, errorText);
       return NextResponse.json(
-        { error: 'Failed to fetch from Figma API' },
+        { error: `Figma API Error: ${response.status} - ${errorText}` },
         { status: response.status }
       );
     }
