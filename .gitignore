@@ -30,3 +30,6 @@ Thumbs.db
 
 # Vercel
 .vercel
+
+# Figma cache (local API responses - never commit)
+figma-cache/

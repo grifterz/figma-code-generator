@@ -8,6 +8,8 @@ interface GenerateResponse {
     css: string;
   };
   swift?: string;
+  source?: 'api' | 'cache';
+  cachedAt?: string;
   error?: string;
 }
 
@@ -15,8 +17,9 @@ export default function Home() {
   const [figmaUrl, setFigmaUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<GenerateResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'render' | 'html' | 'css' | 'swift'>('render');
+  const [activeTab, setActiveTab] = useState<'render' | 'html' | 'css'>('render');
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [cacheInfo, setCacheInfo] = useState<{ fileKey?: string; cachedAt?: string }>({});
 
   const handleGenerate = async () => {
     if (!figmaUrl.trim()) return;
@@ -40,32 +43,28 @@ export default function Home() {
       } else {
         setResult(data);
         setActiveTab('render');
+        
+        // Show cache status
+        if (data.source === 'cache' && data.cachedAt) {
+          console.log(`Loaded from cache: ${data.cachedAt}`);
+          // Extract file key from URL for display
+          const match = figmaUrl.match(/figma\.com\/(?:file|design)\/([a-zA-Z0-9]+)/);
+          if (match) {
+            setCacheInfo({ fileKey: match[1], cachedAt: data.cachedAt });
+          }
+        }
       }
     } catch (error) {
-      alert('Failed to generate code: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      alert('Failed to generate: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setLoading(false);
     }
   };
 
-  // Render the HTML/CSS in iframe
+  // Render HTML/CSS in iframe
   useEffect(() => {
     if (result?.web && activeTab === 'render' && iframeRef.current) {
-      const html = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>
-              * { box-sizing: border-box; margin: 0; padding: 0; }
-              body { font-family: system-ui, -apple-system, sans-serif; }
-              ${result.web.css}
-            </style>
-          </head>
-          <body>
-            ${result.web.html}
-          </body>
-        </html>
-      `;
+      const { html } = result.web;
       iframeRef.current.srcdoc = html;
     }
   }, [result, activeTab]);
@@ -79,7 +78,7 @@ export default function Home() {
             Figma Renderer
           </h1>
           <p className="mt-2 text-gray-600">
-            Render Figma designs visually
+            Pixel-perfect Figma rendering
           </p>
         </div>
       </header>
@@ -109,8 +108,19 @@ export default function Home() {
             </button>
           </div>
           <p className="mt-2 text-sm text-gray-500">
-            Paste your Figma file URL to render the design.
+            First render: fetches from Figma API (uses 1 request)
+            <br />
+            Subsequent renders: uses local cache (no API calls)
           </p>
+          
+          {/* Cache Status */}
+          {cacheInfo.fileKey && (
+            <div className="mt-4 p-3 bg-green-50 rounded-lg">
+              <p className="text-sm text-green-700">
+                ✓ Loaded from cache • {cacheInfo.fileKey}
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
@@ -150,19 +160,9 @@ export default function Home() {
               >
                 CSS
               </button>
-              <button
-                onClick={() => setActiveTab('swift')}
-                className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === 'swift'
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                SwiftUI
-              </button>
             </div>
 
-            {/* Render Display */}
+            {/* Render Preview */}
             {activeTab === 'render' && result.web && (
               <div className="bg-white" style={{ height: '600px' }}>
                 <iframe
@@ -174,48 +174,49 @@ export default function Home() {
               </div>
             )}
 
-            {/* Code Display */}
+            {/* HTML Code */}
             {activeTab === 'html' && result.web && (
               <div className="p-6 bg-gray-900 max-h-[600px] overflow-auto">
-                <pre className="text-green-400 text-sm">
-                  <code>{result.web.html}</code>
-                </pre>
-              </div>
-            )}
-            {activeTab === 'css' && result.web && (
-              <div className="p-6 bg-gray-900 max-h-[600px] overflow-auto">
-                <pre className="text-blue-400 text-sm">
-                  <code>{result.web.css}</code>
-                </pre>
-              </div>
-            )}
-            {activeTab === 'swift' && result.swift && (
-              <div className="p-6 bg-gray-900 max-h-[600px] overflow-auto">
-                <pre className="text-orange-400 text-sm">
-                  <code>{result.swift}</code>
+                <pre className="text-green-400 text-sm whitespace-pre-wrap">
+                  {result.web.html}
                 </pre>
               </div>
             )}
 
-            {/* Copy Button */}
-            {activeTab !== 'render' && (
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    const code = activeTab === 'html' ? result.web?.html : 
-                                 activeTab === 'css' ? result.web?.css : 
-                                 result.swift;
-                    if (code) {
-                      navigator.clipboard.writeText(code);
-                      alert('Copied to clipboard!');
-                    }
-                  }}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded hover:bg-gray-300 transition-colors"
-                >
-                  Copy to Clipboard
-                </button>
+            {/* CSS Code */}
+            {activeTab === 'css' && result.web && (
+              <div className="p-6 bg-gray-900 max-h-[600px] overflow-auto">
+                <pre className="text-blue-400 text-sm whitespace-pre-wrap">
+                  {result.web.css}
+                </pre>
               </div>
             )}
+
+            {/* Copy Buttons */}
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex gap-4">
+              <button
+                onClick={() => {
+                  if (result.web?.html) {
+                    navigator.clipboard.writeText(result.web.html);
+                    alert('HTML copied!');
+                  }
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded hover:bg-gray-300"
+              >
+                Copy HTML
+              </button>
+              <button
+                onClick={() => {
+                  if (result.web?.css) {
+                    navigator.clipboard.writeText(result.web.css);
+                    alert('CSS copied!');
+                  }
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded hover:bg-gray-300"
+              >
+                Copy CSS
+              </button>
+            </div>
           </div>
         </section>
       )}
@@ -223,7 +224,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="max-w-7xl mx-auto px-4 py-8">
         <p className="text-center text-sm text-gray-500">
-          Figma Renderer • Built with Figma API
+          Figma Renderer • Cached development for fast iteration
         </p>
       </footer>
     </main>
