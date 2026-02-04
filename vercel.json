@@ -1,5 +1,5 @@
 {
   "buildCommand": "npm run build --prefix web",
-  "outputDirectory": "web/.next",
+  "outputDirectory": ".next",
   "framework": "nextjs"
 }
