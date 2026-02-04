@@ -336,6 +336,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the target node (first canvas, then specified node or first frame)
+    // TypeScript doesn't understand our null check above, so we assert here
+    if (!figmaData) {
+      return NextResponse.json(
+        { error: 'Failed to load Figma data' },
+        { status: 500 }
+      );
+    }
+    
     const canvas = figmaData.document.children[0];
     const targetNode = nodeId 
       ? findNodeById(figmaData.document, nodeId)
